@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="4096" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="220" fill="#213B38"/>
+  <!-- Architectural roof / home silhouette -->
+  <path d="M258 470 L512 250 L766 470" fill="none" stroke="#F3F0E7" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M324 445 V744 Q324 770 350 770 H674 Q700 770 700 744 V445" fill="none" stroke="#F3F0E7" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Inventory ledger / organized shelves -->
+  <path d="M390 548 H634" stroke="#F3F0E7" stroke-width="34" stroke-linecap="round"/>
+  <path d="M390 642 H575" stroke="#F3F0E7" stroke-width="34" stroke-linecap="round"/>
+  <rect x="596" y="616" width="58" height="58" rx="15" fill="#D88B69"/>
+  <!-- small grounded accent as a catalog marker -->
+  <circle cx="706" cy="343" r="18" fill="#D88B69"/>
+</svg>

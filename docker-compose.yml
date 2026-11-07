@@ -1,0 +1,87 @@
+# HomeLedger · 家庭网关 / 云服务器部署
+#
+#   cp .env.example .env && edit it
+#   docker compose up -d --build
+#   open http://<host>:8000
+#
+# Optional PostgreSQL (cloud profile):
+#   docker compose --profile postgres up -d
+
+services:
+  homeledger:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: homeledger:2.0.2-beta
+    container_name: homeledger
+    restart: unless-stopped
+    ports:
+      - "${HOMELEDGER_PORT:-8000}:8000"
+    environment:
+      HOMELEDGER_DEPLOYMENT_MODE: ${HOMELEDGER_DEPLOYMENT_MODE:-gateway}
+      HOMELEDGER_DATA_DIR: /data
+      HOMELEDGER_SECRET_KEY: ${HOMELEDGER_SECRET_KEY:?请在 .env 中设置 HOMELEDGER_SECRET_KEY}
+      HOMELEDGER_ALLOW_REGISTRATION: ${HOMELEDGER_ALLOW_REGISTRATION:-true}
+      HOMELEDGER_SERVICE_MODE: ${HOMELEDGER_SERVICE_MODE:-false}
+      HOMELEDGER_EMAIL_DOMAINS: ${HOMELEDGER_EMAIL_DOMAINS:-}
+      HOMELEDGER_AUTH_RATE_LIMIT: ${HOMELEDGER_AUTH_RATE_LIMIT:-30}
+      HOMELEDGER_MAX_UPLOAD_MB: ${HOMELEDGER_MAX_UPLOAD_MB:-64}
+      HOMELEDGER_CORS_ORIGINS: ${HOMELEDGER_CORS_ORIGINS:-*}
+      HOMELEDGER_AI_PROVIDER: ${HOMELEDGER_AI_PROVIDER:-local}
+      HOMELEDGER_AI_ENDPOINT: ${HOMELEDGER_AI_ENDPOINT:-}
+      HOMELEDGER_AI_API_KEY: ${HOMELEDGER_AI_API_KEY:-}
+      HOMELEDGER_NOTIFICATION_CHANNELS: ${HOMELEDGER_NOTIFICATION_CHANNELS:-inapp}
+      HOMELEDGER_WEBHOOK_URL: ${HOMELEDGER_WEBHOOK_URL:-}
+      # 邮件通道所需；只在 NOTIFICATION_CHANNELS 含 email 时才会用到
+      HOMELEDGER_SMTP_HOST: ${HOMELEDGER_SMTP_HOST:-}
+      HOMELEDGER_SMTP_PORT: ${HOMELEDGER_SMTP_PORT:-587}
+      HOMELEDGER_SMTP_USER: ${HOMELEDGER_SMTP_USER:-}
+      HOMELEDGER_SMTP_PASSWORD: ${HOMELEDGER_SMTP_PASSWORD:-}
+      HOMELEDGER_SMTP_FROM: ${HOMELEDGER_SMTP_FROM:-}
+      # 附件改放对象存储时使用（需在镜像内安装 boto3）
+      HOMELEDGER_STORAGE_BACKEND: ${HOMELEDGER_STORAGE_BACKEND:-local}
+      HOMELEDGER_S3_ENDPOINT: ${HOMELEDGER_S3_ENDPOINT:-}
+      HOMELEDGER_S3_BUCKET: ${HOMELEDGER_S3_BUCKET:-}
+      HOMELEDGER_S3_ACCESS_KEY: ${HOMELEDGER_S3_ACCESS_KEY:-}
+      HOMELEDGER_S3_SECRET_KEY: ${HOMELEDGER_S3_SECRET_KEY:-}
+      HOMELEDGER_S3_REGION: ${HOMELEDGER_S3_REGION:-}
+      HOMELEDGER_AUTO_BACKUP_HOURS: ${HOMELEDGER_AUTO_BACKUP_HOURS:-24}
+      # 只影响容器内日志与脚本的时间戳；业务时间统一按 UTC 存储、由浏览器本地化显示。
+      TZ: ${TZ:-Asia/Shanghai}
+      HOMELEDGER_DATABASE_URL: ${HOMELEDGER_DATABASE_URL:-}
+    volumes:
+      # 命名卷直接写 hl-data；宿主机目录可加 :Z 让 SELinux 放行（CentOS/RHEL）。
+      - ${HOMELEDGER_DATA_VOLUME:-hl-data}:/data${HOMELEDGER_DATA_VOLUME_OPTS:-}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/system/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # A home gateway is memory constrained; cap it so a runaway import cannot
+    # take down the whole NAS.
+    deploy:
+      resources:
+        limits:
+          memory: ${HOMELEDGER_MEMORY_LIMIT:-512M}
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: homeledger-db
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: homeledger
+      POSTGRES_USER: homeledger
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES_PASSWORD}
+    volumes:
+      - hl-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homeledger"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  hl-data:
+  hl-pg:

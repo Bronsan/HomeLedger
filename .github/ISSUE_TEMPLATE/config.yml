@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 私密报告安全漏洞
+    url: https://github.com/Bronsan/HomeLedger/security/advisories/new
+    about: 不要在公开 Issue 中披露漏洞细节、利用代码或真实数据。
+  - name: 阅读项目文档
+    url: https://github.com/Bronsan/HomeLedger/tree/main/docs
+    about: 部署、架构、API、打包、手机端与硬件文档。
+  - name: 商业授权咨询
+    url: https://github.com/Bronsan/HomeLedger/blob/main/COMMERCIAL.md
+    about: 商业使用需要单独书面授权，先阅读说明再发起咨询。

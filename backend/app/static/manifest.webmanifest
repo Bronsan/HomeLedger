@@ -1,0 +1,23 @@
+{
+  "name": "HomeLedger · 家庭物品账本",
+  "short_name": "HomeLedger",
+  "description": "本地优先、家庭多人协作的家庭物品全生命周期管理",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f5f1",
+  "theme_color": "#0d6b5f",
+  "lang": "zh-CN",
+  "categories": ["productivity", "utilities", "lifestyle"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "扫码查物", "url": "/scan", "description": "扫描物品标签" },
+    { "name": "新增物品", "url": "/items/new", "description": "录入一件新物品" },
+    { "name": "维护计划", "url": "/maintenance", "description": "查看待办维护" }
+  ]
+}

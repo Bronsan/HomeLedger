@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HomeLedger",
+  "version": "2.0.2-beta",
+  "identifier": "app.homeledger.desktop",
+  "build": {
+    "frontendDist": "../backend/app/static"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "HomeLedger",
+        "width": 1320,
+        "height": 880,
+        "minWidth": 1000,
+        "minHeight": 660,
+        "center": true,
+        "resizable": true,
+        "visible": false,
+        "decorations": false,
+        "dragDropEnabled": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "家庭物品全生命周期管理",
+    "longDescription": "自托管优先的家庭物品管理：物品档案、位置分类、文档附件、维护提醒、二维码标签与多人协作。桌面版内置服务，数据留在本机。",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "server/**/*"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "languages": ["SimpChinese"],
+        "displayLanguageSelector": false,
+        "installMode": "currentUser",
+        "compression": "lzma",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "installerHooks": "nsis/installer-hooks.nsh"
+      }
+    }
+  }
+}

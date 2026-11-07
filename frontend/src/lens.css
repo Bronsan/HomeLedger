@@ -1,0 +1,2103 @@
+/* ==========================================================================
+   HomeLedger · 透镜 Lens
+   --------------------------------------------------------------------------
+   设计语言来自 Lens · v1.1.0-showcase.1
+   https://github.com/ruiqichenbiec/design-systems
+   MIT License © 2026 DayDreamInAReverie
+
+   这里是面向 HomeLedger 现有 DOM 的原创实现，不引入 Lens 的 WebGL 渲染器。
+   取的是它的三件事：
+     1. 玻璃承载信息，液体表达连续变化，光表达状态；
+     2. 冷纸面 + 白色玻璃 + 深绿主操作，层次只靠明度和 1px 光边；
+     3. 34px 面板、999px 药丸、14px 小控件、蓝色焦点环。
+   旧 glass.css 仍作为结构与降级底稿，本文件只覆盖材质、颜色和形状。
+   ========================================================================== */
+
+/* ------------------------------ tokens --------------------------------- */
+html[data-lens="1"] {
+  /* Lens 语义 token */
+  --lens-ink: #22252b;
+  --lens-muted: #6b7079;
+  --lens-accent: #2875ed;
+  --lens-success: #236442;
+  --lens-page: #f7f8fa;
+  --lens-cyan: #90e8fa;
+  --lens-green: #52bb83;
+  --lens-gold: #e2b54e;
+  --lens-blue: #7fa8c9;
+
+  /* 纸与墨：冷白纸面，不用暖灰 */
+  --bg: #edf1f6;
+  --bg-sunken: #e4eaf1;
+  --surface: #fbfcfe;
+  --surface-2: #f2f5f9;
+  --surface-hover: #e9eff6;
+  --border: #dfe6ee;
+  --border-strong: #c8d2dd;
+  --border-input: #8a97a6;
+
+  --text: #1d242c;
+  --text-2: #59636f;
+  --text-3: #6d7885;
+  --text-invert: #fbfcfe;
+
+  /* 主操作：Lens 的 success 绿，不是高饱和品牌绿 */
+  --brand: #236442;
+  --brand-hover: #1a5235;
+  --brand-soft: #e3efe7;
+  --brand-soft-2: #cee3d6;
+  --brand-ring: rgba(35, 100, 66, 0.18);
+  --on-brand: #f7fbf8;
+  --switch-check: #1a5235;
+
+  /* 家印保留朱红，作为唯一暖色锚点 */
+  --seal: #b4513d;
+  --seal-soft: #f4e4de;
+  --seal-ring: rgba(180, 81, 61, 0.18);
+  --on-seal: #ffffff;
+
+  --sun: #e8b07c;
+  --sun-soft: #f7ecdf;
+  --amber: #8a5b16;
+  --amber-soft: #f5ead4;
+  --danger: #a92f3a;
+  --danger-soft: #f7e2e4;
+  --ok: #236442;
+  --info: #2875ed;
+  --info-soft: #e5eefb;
+
+  /* 玻璃与光 */
+  --glass: rgba(255, 255, 255, 0.56);
+  --glass-strong: rgba(255, 255, 255, 0.84);
+  --glass-border: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(255, 255, 255, 0.72);
+  --glass-blur: 30px;
+  --glass-blur-lg: 42px;
+  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0) 48%);
+  --surface-glass: color-mix(in srgb, var(--surface) 74%, transparent);
+  --surface-glass-strong: color-mix(in srgb, var(--surface) 92%, transparent);
+
+  --well-shadow: inset 0 2px 5px rgba(30, 48, 66, 0.07),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.72);
+  --raise-shadow: 0 1px 2px rgba(30, 48, 66, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+
+  /* 选中底板：亮色下是一枚没染色的白玻璃，暗色下是薄薄一层雾。 */
+  --pill-glass: rgba(255, 255, 255, 0.72);
+  --pill-border: rgba(255, 255, 255, 0.92);
+  --pill-shadow: inset 0 1px 0 #ffffff,
+    inset 1px 0 0 rgba(255, 255, 255, 0.55),
+    0 8px 18px -14px rgba(28, 48, 68, 0.34);
+
+  /* 侧栏：一块没有染色的浮法玻璃 */
+  --rail: linear-gradient(
+    156deg,
+    rgba(255, 255, 255, 0.68) 0%,
+    rgba(246, 250, 254, 0.46) 42%,
+    rgba(236, 243, 250, 0.54) 100%
+  );
+  --rail-glow:
+    radial-gradient(68% 30% at 4% 0%, rgba(144, 232, 250, 0.22), transparent 68%),
+    radial-gradient(54% 26% at 100% 8%, rgba(226, 181, 78, 0.12), transparent 70%),
+    radial-gradient(85% 28% at 34% 108%, rgba(82, 187, 131, 0.16), transparent 72%);
+  --rail-veil: linear-gradient(
+    152deg,
+    rgba(255, 255, 255, 0.44) 0%,
+    rgba(255, 255, 255, 0.04) 34%,
+    rgba(255, 255, 255, 0) 56%
+  );
+  --rail-bloom: radial-gradient(48% 16% at 95% -4%, rgba(255, 255, 255, 0.62), transparent 72%);
+  --rail-border: rgba(255, 255, 255, 0.82);
+  --rail-text: var(--text);
+  --rail-text-2: var(--text-2);
+  --rail-text-3: color-mix(in srgb, var(--text-2) 88%, var(--text));
+  --rail-hover: rgba(255, 255, 255, 0.5);
+  --rail-shadow: 0 28px 58px -42px rgba(28, 48, 68, 0.34),
+    0 6px 18px -16px rgba(28, 48, 68, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 1px 0 0 rgba(255, 255, 255, 0.45);
+
+  /* 形状：外壳 > 面板 > 控件 > 药丸 */
+  --radius-xs: 10px;
+  --radius-sm: 14px;
+  --radius: 32px;
+  --radius-lg: 36px;
+  --radius-xl: 38px;
+  --radius-full: 999px;
+
+  /* 阴影：Lens 的 inset 高光 + 很浅的冷投影 */
+  --shadow-xs: 0 1px 2px rgba(33, 53, 82, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 1px 0 0 rgba(255, 255, 255, 0.5);
+  --shadow-sm: 0 12px 24px -12px rgba(33, 53, 82, 0.3),
+    0 1px 2px rgba(33, 53, 82, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 1px 0 0 rgba(255, 255, 255, 0.55);
+  --shadow: 0 20px 42px -18px rgba(33, 53, 82, 0.28),
+    0 2px 8px -2px rgba(33, 53, 82, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 1px 0 0 rgba(255, 255, 255, 0.6);
+  --shadow-lg: 0 34px 72px -26px rgba(18, 36, 54, 0.36),
+    0 8px 24px -12px rgba(28, 48, 68, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 1px 0 0 rgba(255, 255, 255, 0.5);
+  --shadow-brand: 0 10px 26px -14px rgba(35, 100, 66, 0.4);
+  --shadow-seal: 0 12px 28px -12px rgba(180, 81, 61, 0.35);
+
+  /* 字体：Lens 用系统无衬线，中文回退不变 */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    "Segoe UI Variable", "Segoe UI", "PingFang SC", "HarmonyOS Sans SC",
+    "MiSans", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-display: var(--font);
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, monospace;
+
+  --sidebar-w: 232px;
+  --topbar-h: 56px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --lens-spring: cubic-bezier(0.2, 0.9, 0.25, 1.22);
+}
+
+/* 背景层只在没选背景预设时生效。
+   glass.css 的 html[data-bg="…"] 与这里的 html[data-lens="1"] 同为 0,1,0，
+   而本文件后加载——不把 Lens 的默认层收进 :not([data-bg])，预设就会被整个
+   覆盖掉，表现为「点了背景没反应」。 */
+html[data-lens="1"]:not([data-bg]) {
+  /* 冷纸面 + 三束很弱的光，不做大面积渐变 */
+  --bg-image: none;
+  --noise: none;
+  --bg-noise: none;
+  --bg-noise-size: auto;
+  --bg-noise-repeat: no-repeat;
+  --bg-a: radial-gradient(
+    58% 46% at 6% -8%,
+    color-mix(in srgb, var(--lens-cyan) 22%, transparent),
+    transparent 66%
+  );
+  --bg-a-size: auto;
+  --bg-a-repeat: no-repeat;
+  --bg-b: radial-gradient(
+    52% 44% at 96% -2%,
+    color-mix(in srgb, var(--lens-gold) 10%, transparent),
+    transparent 70%
+  );
+  --bg-b-size: auto;
+  --bg-b-repeat: no-repeat;
+  --bg-c: radial-gradient(
+    48% 40% at 92% 94%,
+    color-mix(in srgb, var(--lens-green) 14%, transparent),
+    transparent 72%
+  );
+  --bg-c-size: auto;
+  --bg-c-repeat: no-repeat;
+  --bg-d: radial-gradient(
+    64% 52% at 42% 112%,
+    color-mix(in srgb, var(--lens-blue) 8%, transparent),
+    transparent 70%
+  );
+  --bg-d-size: auto;
+  --bg-d-repeat: no-repeat;
+  --bg-e: linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent 42%);
+  --bg-e-size: auto;
+  --bg-e-repeat: no-repeat;
+}
+
+/* 选了配色后，同一组背景层跟着换环境光；两层来自方案自带的两束光。 */
+html[data-lens="1"][data-accent]:not([data-bg]) {
+  --bg-a: radial-gradient(
+    58% 46% at 6% -8%,
+    color-mix(in srgb, var(--accent-glow-a) 22%, transparent),
+    transparent 66%
+  );
+  --bg-b: radial-gradient(
+    52% 44% at 96% -2%,
+    color-mix(in srgb, var(--accent-glow-b) 10%, transparent),
+    transparent 70%
+  );
+  --bg-c: radial-gradient(
+    48% 40% at 92% 94%,
+    color-mix(in srgb, var(--accent-seed) 14%, transparent),
+    transparent 72%
+  );
+  --bg-d: radial-gradient(
+    64% 52% at 42% 112%,
+    color-mix(in srgb, var(--accent-glow-b) 8%, transparent),
+    transparent 70%
+  );
+}
+
+/* 暗色：把纸换成深蓝黑，玻璃仍是玻璃，不反相成灰 */
+html[data-lens="1"][data-theme="dark"] {
+  --bg: #0a0f14;
+  --bg-sunken: #070b0f;
+  --surface: #121a23;
+  --surface-2: #17222d;
+  --surface-hover: #1c2936;
+  --border: #263442;
+  --border-strong: #3a4b5c;
+  --border-input: #6c7c8d;
+
+  --text: #e9eff5;
+  --text-2: #aab7c4;
+  --text-3: #8b99a8;
+  --text-invert: #0a0f14;
+
+  --brand: #7fd0a6;
+  --brand-hover: #96dfb8;
+  --brand-soft: #163025;
+  --brand-soft-2: #1f4534;
+  --brand-ring: rgba(127, 208, 166, 0.2);
+  --on-brand: #08120d;
+  --switch-check: #0d2a1c;
+
+  --seal: #f08a6d;
+  --seal-soft: #3a221c;
+  --seal-ring: rgba(240, 138, 109, 0.24);
+  --on-seal: #0a0f14;
+
+  --sun: #e6a774;
+  --sun-soft: #32251a;
+  --amber: #e0ae61;
+  --amber-soft: #322712;
+  --danger: #f08a80;
+  --danger-soft: #3a1e1b;
+  --ok: #7fd0a6;
+  --info: #8fb8ff;
+  --info-soft: #182538;
+
+  --glass: rgba(18, 26, 35, 0.58);
+  --glass-strong: rgba(22, 32, 43, 0.86);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --card-border: rgba(255, 255, 255, 0.09);
+  --card-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 48%);
+  --surface-glass: color-mix(in srgb, var(--surface) 82%, transparent);
+  --surface-glass-strong: color-mix(in srgb, var(--surface) 94%, transparent);
+
+  --well-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.45),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+  --raise-shadow: 0 1px 2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+
+  --pill-glass: rgba(148, 205, 179, 0.12);
+  --pill-border: rgba(255, 255, 255, 0.12);
+  --pill-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    0 8px 18px -14px rgba(0, 0, 0, 0.7);
+
+  --rail: linear-gradient(
+    156deg,
+    rgba(26, 38, 50, 0.82) 0%,
+    rgba(15, 24, 33, 0.66) 46%,
+    rgba(12, 20, 28, 0.76) 100%
+  );
+  --rail-glow:
+    radial-gradient(68% 30% at 4% 0%, rgba(144, 232, 250, 0.1), transparent 68%),
+    radial-gradient(54% 26% at 100% 8%, rgba(226, 181, 78, 0.06), transparent 70%),
+    radial-gradient(85% 28% at 34% 108%, rgba(82, 187, 131, 0.1), transparent 72%);
+  --rail-veil: linear-gradient(
+    152deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.015) 34%,
+    rgba(255, 255, 255, 0) 56%
+  );
+  --rail-bloom: radial-gradient(48% 16% at 95% -4%, rgba(255, 255, 255, 0.1), transparent 72%);
+  --rail-border: rgba(255, 255, 255, 0.1);
+  --rail-text: var(--text);
+  --rail-text-2: var(--text-2);
+  --rail-text-3: color-mix(in srgb, var(--text-2) 88%, var(--text));
+  --rail-hover: rgba(255, 255, 255, 0.06);
+  --rail-shadow: 0 30px 60px -42px rgba(0, 0, 0, 0.8),
+    0 6px 18px -16px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  --shadow-sm: 0 12px 24px -12px rgba(0, 0, 0, 0.55),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  --shadow: 0 22px 48px -22px rgba(0, 0, 0, 0.75),
+    0 2px 8px -2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05);
+  --shadow-lg: 0 36px 84px -30px rgba(0, 0, 0, 0.9),
+    0 8px 24px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 1px 0 0 rgba(255, 255, 255, 0.05);
+  --shadow-brand: 0 10px 26px -14px rgba(127, 208, 166, 0.28);
+  --shadow-seal: 0 12px 28px -12px rgba(240, 138, 109, 0.28);
+}
+
+html[data-lens="1"][data-theme="dark"]:not([data-bg]) {
+  --bg-a: radial-gradient(
+    58% 46% at 6% -8%,
+    color-mix(in srgb, var(--lens-cyan) 9%, transparent),
+    transparent 66%
+  );
+  --bg-b: radial-gradient(
+    52% 44% at 96% -2%,
+    color-mix(in srgb, var(--lens-gold) 5%, transparent),
+    transparent 70%
+  );
+  --bg-c: radial-gradient(
+    48% 40% at 92% 94%,
+    color-mix(in srgb, var(--lens-green) 6%, transparent),
+    transparent 72%
+  );
+  --bg-d: radial-gradient(
+    64% 52% at 42% 112%,
+    color-mix(in srgb, var(--lens-blue) 5%, transparent),
+    transparent 70%
+  );
+  --bg-e: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 42%);
+}
+
+html[data-lens="1"][data-theme="dark"][data-accent]:not([data-bg]) {
+  --bg-a: radial-gradient(
+    58% 46% at 6% -8%,
+    color-mix(in srgb, var(--accent-glow-a) 9%, transparent),
+    transparent 66%
+  );
+  --bg-b: radial-gradient(
+    52% 44% at 96% -2%,
+    color-mix(in srgb, var(--accent-glow-b) 5%, transparent),
+    transparent 70%
+  );
+  --bg-c: radial-gradient(
+    48% 40% at 92% 94%,
+    color-mix(in srgb, var(--accent-seed-dark) 6%, transparent),
+    transparent 72%
+  );
+  --bg-d: radial-gradient(
+    64% 52% at 42% 112%,
+    color-mix(in srgb, var(--accent-glow-b) 5%, transparent),
+    transparent 70%
+  );
+}
+
+/* 主题色仍然只改变主操作与焦点，不改变 Lens 的材质规则。 */
+html[data-lens="1"][data-accent] {
+  --brand: color-mix(in srgb, var(--accent-seed) 58%, #12241c);
+  --brand-hover: color-mix(in srgb, var(--accent-seed) 46%, #12241c);
+  --brand-soft: color-mix(in srgb, var(--accent-seed) 12%, var(--surface));
+  --brand-soft-2: color-mix(in srgb, var(--accent-seed) 20%, var(--surface));
+  --brand-ring: color-mix(in srgb, var(--accent-seed) 20%, transparent);
+  --on-brand: #f7fbf8;
+}
+html[data-lens="1"][data-theme="dark"][data-accent] {
+  --brand: var(--accent-seed-dark);
+  --brand-hover: color-mix(in srgb, var(--accent-seed-dark) 78%, white);
+  --brand-soft: color-mix(in srgb, var(--accent-seed-dark) 15%, var(--surface));
+  --brand-soft-2: color-mix(in srgb, var(--accent-seed-dark) 24%, var(--surface));
+  --brand-ring: color-mix(in srgb, var(--accent-seed-dark) 22%, transparent);
+  --on-brand: #08120d;
+}
+
+/* ------------------------------- base ---------------------------------- */
+html[data-lens="1"] body {
+  background: var(--bg);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html[data-lens="1"] body::before {
+  background-color: var(--bg);
+}
+
+html[data-lens="1"] ::selection {
+  background: color-mix(in srgb, var(--lens-cyan) 36%, var(--surface));
+  color: var(--text);
+}
+
+html[data-lens="1"] :focus-visible {
+  outline: 3px solid var(--lens-accent);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+html[data-lens="1"] h1,
+html[data-lens="1"] h2,
+html[data-lens="1"] h3,
+html[data-lens="1"] h4,
+html[data-lens="1"] h5 {
+  font-family: var(--font);
+  letter-spacing: -0.025em;
+}
+
+html[data-lens="1"] .h1 {
+  font-weight: 650;
+  letter-spacing: -0.045em;
+}
+
+html[data-lens="1"] .h2 {
+  font-weight: 640;
+  letter-spacing: -0.032em;
+}
+
+html[data-lens="1"] .eyebrow {
+  color: var(--text-3);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------ shell ----------------------------------- */
+html[data-lens="1"] .sidebar {
+  inset: 12px auto 12px 12px;
+  width: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  padding: 15px 9px 9px;
+  background-color: transparent;
+  background-image: var(--rail);
+  border: 1px solid var(--rail-border);
+  border-radius: 34px;
+  box-shadow: var(--rail-shadow);
+  backdrop-filter: blur(40px) saturate(175%);
+  -webkit-backdrop-filter: blur(40px) saturate(175%);
+}
+
+html[data-lens="1"] .sidebar::before {
+  background: var(--rail-glow);
+  filter: blur(34px) saturate(135%);
+  opacity: 0.82;
+}
+
+html[data-lens="1"] .sidebar::after {
+  background: var(--rail-bloom), var(--rail-veil);
+}
+
+html[data-lens="1"] .main {
+  margin-left: calc(var(--sidebar-w) + 24px);
+}
+
+html[data-lens="1"] .shell.has-appbar .sidebar {
+  top: calc(var(--appbar-h) + 12px);
+}
+
+html[data-lens="1"] .topbar {
+  top: 10px;
+  height: var(--topbar-h);
+  margin: 10px 26px 0;
+  padding: 0 14px;
+  border-radius: 999px;
+}
+
+html[data-lens="1"] .topbar.scrolled {
+  background: var(--glass);
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(28px) saturate(175%);
+  -webkit-backdrop-filter: blur(28px) saturate(175%);
+}
+
+html[data-lens="1"] .topbar-title h1 {
+  font-size: 14px;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+}
+
+html[data-lens="1"] .content {
+  max-width: 1320px;
+  padding: 24px 38px 96px;
+}
+
+html[data-lens="1"] .page-head {
+  align-items: flex-end;
+  margin: 8px 0 26px;
+}
+
+html[data-lens="1"] .page-head .h1 {
+  font-size: 40px;
+  line-height: 1.08;
+  font-weight: 650;
+  letter-spacing: -0.048em;
+}
+
+html[data-lens="1"] .page-head .sub {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+html[data-lens="1"] .page-actions {
+  gap: 8px;
+}
+
+html[data-lens="1"] .ar-folio {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  box-shadow: var(--shadow-xs);
+  color: var(--text-2);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(10px);
+}
+
+/* --------------------------- brand & nav ------------------------------- */
+html[data-lens="1"] .brand {
+  gap: 11px;
+  padding: 3px 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+html[data-lens="1"] .brand-name {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  color: var(--rail-text);
+}
+
+html[data-lens="1"] .brand-sub {
+  font-size: 10.5px;
+  color: var(--rail-text-3);
+  letter-spacing: 0.02em;
+}
+
+html[data-lens="1"] .seal {
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 26%, #ffd8c7 0%, #de7353 38%, #b4513d 68%, #94382a 100%);
+  color: var(--on-seal);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    inset 0 -6px 12px rgba(90, 20, 10, 0.18),
+    0 10px 22px -12px rgba(180, 81, 61, 0.55);
+}
+
+html[data-lens="1"] .seal.sm {
+  width: 26px;
+  height: 26px;
+  font-size: 13px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.56),
+    0 6px 16px -9px rgba(180, 81, 61, 0.55);
+}
+
+html[data-lens="1"] .brand-logo {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 8px 16px -10px rgba(18, 36, 54, 0.45),
+    0 1px 2px rgba(18, 36, 54, 0.12);
+}
+
+/* 深色绘画面板上，深绿图标需要一道更清楚的亮边。 */
+html[data-lens="1"] .auth-art .brand-logo {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.28),
+    0 8px 18px -12px rgba(0, 0, 0, 0.8);
+}
+
+html[data-lens="1"] .seal.stamp {
+  border-radius: 999px;
+  color: var(--seal);
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  border-color: rgba(255, 255, 255, 0.74);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-lens="1"] .nav-label {
+  padding: 11px 10px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--rail-text-3);
+}
+
+html[data-lens="1"] .sidebar > nav .nav-item {
+  height: 38px;
+  padding: 0 11px;
+  border-radius: 14px;
+  font-size: 13px;
+  color: var(--rail-text-2);
+  transition: transform 0.42s var(--lens-spring), background 0.16s var(--ease),
+    color 0.16s var(--ease);
+}
+
+html[data-lens="1"] .sidebar > nav .nav-item:hover {
+  background: var(--rail-hover);
+  color: var(--rail-text);
+}
+
+html[data-lens="1"] .sidebar > nav .nav-item.active {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+html[data-lens="1"] .nav-indicator {
+  border-radius: 14px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-glass);
+  box-shadow:
+    var(--pill-shadow),
+    0 0 0 1px rgba(82, 187, 131, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-lens="1"] .sidebar > nav.has-indicator .nav-item.active {
+  color: var(--brand);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html[data-lens="1"] .sidebar > nav .nav-item.active svg {
+  stroke: var(--brand);
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(82, 187, 131, 0.38));
+}
+
+html[data-lens="1"] .nav-item .badge-count {
+  min-width: 19px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--on-brand);
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+html[data-lens="1"] .sidebar > nav .nav-item.active .badge-count {
+  background: var(--brand-soft-2);
+  color: var(--brand);
+  box-shadow: none;
+}
+
+html[data-lens="1"] .sidebar-footer {
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+html[data-lens="1"] .family-switch {
+  padding: 8px;
+  border-radius: 18px;
+}
+
+html[data-lens="1"] .family-switch:hover {
+  background: var(--rail-hover);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+html[data-lens="1"] .avatar {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 4px 12px -6px rgba(33, 53, 82, 0.4);
+}
+
+html[data-lens="1"] .family-avatar {
+  border-radius: 50%;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--brand) 78%, white), var(--brand));
+  color: var(--on-brand);
+  box-shadow:
+    0 4px 12px -8px var(--brand-ring),
+    0 0 0 1px rgba(255, 255, 255, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+html[data-lens="1"] .sidebar-footer > .card {
+  background: var(--glass-strong);
+  border-color: var(--glass-border);
+  backdrop-filter: blur(26px) saturate(170%);
+}
+
+/* ------------------------------ buttons --------------------------------- */
+html[data-lens="1"] .btn {
+  height: 42px;
+  padding: 0 17px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 56%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 1px 0 0 rgba(255, 255, 255, 0.45),
+    0 8px 20px -18px rgba(28, 48, 68, 0.4);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  font-size: 13px;
+  font-weight: 550;
+  transition: background 0.16s var(--ease), border-color 0.16s, transform 0.42s
+      var(--lens-spring), box-shadow 0.16s, opacity 0.16s;
+}
+
+html[data-lens="1"] .btn:not(.btn-primary):not(.btn-danger):not(.btn-ghost):hover {
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border-color: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    0 12px 26px -18px rgba(28, 48, 68, 0.38);
+}
+
+html[data-lens="1"] .btn:active {
+  transform: scale(0.96);
+  box-shadow: var(--shadow-xs);
+  transition-duration: 0.09s;
+}
+
+html[data-lens="1"] .btn-primary {
+  height: 44px;
+  background: var(--brand);
+  border-color: transparent;
+  color: var(--on-brand);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 1px 0 0 rgba(255, 255, 255, 0.12),
+    0 10px 24px -14px rgba(35, 100, 66, 0.55);
+}
+
+/* 保留 styles.css 里的扫光，Lens 把它压得更像反光而不是动画。 */
+html[data-lens="1"] .btn-primary::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+}
+
+html[data-lens="1"] .btn-primary:hover {
+  background: var(--brand-hover);
+  filter: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 14px 30px -14px rgba(35, 100, 66, 0.55);
+}
+
+html[data-lens="1"] .btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--text-2);
+}
+
+html[data-lens="1"] .btn-ghost:hover {
+  background: var(--rail-hover);
+  color: var(--text);
+}
+
+html[data-lens="1"] .btn-danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 24%, var(--glass-border));
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+}
+
+html[data-lens="1"] .btn-sm {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12.5px;
+}
+
+html[data-lens="1"] .btn-lg {
+  height: 48px;
+  padding: 0 23px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+html[data-lens="1"] .btn-icon {
+  width: 42px;
+  padding: 0;
+}
+
+html[data-lens="1"] .btn-icon.btn-sm {
+  width: 34px;
+}
+
+html[data-lens="1"] .icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  transition: background 0.16s var(--ease), border-color 0.16s,
+    transform 0.42s var(--lens-spring), box-shadow 0.16s;
+}
+
+html[data-lens="1"] .icon-btn:active {
+  transform: scale(0.94);
+  transition-duration: 0.09s;
+}
+
+html[data-lens="1"] .icon-btn:hover {
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  border-color: var(--glass-border);
+  box-shadow: var(--shadow-xs);
+}
+
+html[data-lens="1"] .icon-btn .dot {
+  background: var(--seal);
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 10px rgba(180, 81, 61, 0.45);
+}
+
+/* ------------------------------- forms ---------------------------------- */
+html[data-lens="1"] .label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+html[data-lens="1"] .input,
+html[data-lens="1"] .select,
+html[data-lens="1"] .textarea {
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 16px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 56%, transparent);
+  box-shadow:
+    inset 0 1px 2px rgba(28, 48, 68, 0.05),
+    inset 1px 0 0 rgba(255, 255, 255, 0.35),
+    0 1px 0 rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.16s, box-shadow 0.16s, background 0.16s;
+}
+
+html[data-lens="1"] .input:hover,
+html[data-lens="1"] .select:hover,
+html[data-lens="1"] .textarea:hover {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border-color: rgba(255, 255, 255, 0.96);
+}
+
+html[data-lens="1"] .input:focus,
+html[data-lens="1"] .select:focus,
+html[data-lens="1"] .textarea:focus {
+  border-color: color-mix(in srgb, var(--lens-accent) 48%, var(--glass-border));
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  box-shadow:
+    0 0 0 3px rgba(40, 117, 237, 0.18),
+    inset 0 1px 2px rgba(28, 48, 68, 0.04);
+  outline: none;
+}
+
+/* 多行输入不能被上面的 44px 固定高度压扁。 */
+html[data-lens="1"] .textarea {
+  height: auto;
+  min-height: 92px;
+  padding: 12px 14px;
+  border-radius: 16px;
+}
+
+html[data-lens="1"] .search-input {
+  height: 44px;
+  border-radius: 999px;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 54%, transparent);
+}
+
+html[data-lens="1"] .search-input:focus {
+  border-color: color-mix(in srgb, var(--lens-accent) 48%, var(--glass-border));
+  box-shadow: 0 0 0 3px rgba(40, 117, 237, 0.18);
+}
+
+html[data-lens="1"] .checkbox .box {
+  width: 20px;
+  height: 20px;
+  border-radius: 7px;
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  box-shadow:
+    inset 0 1px 1px rgba(28, 48, 68, 0.04),
+    inset 1px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+html[data-lens="1"] .checkbox input:checked + .box {
+  background: var(--brand);
+  border-color: var(--brand);
+  box-shadow: 0 4px 10px -6px var(--brand-ring);
+}
+
+/* Lens 的开关：更大的轨道、圆形滑块、合上时滑块里出现对勾。 */
+html[data-lens="1"] .switch {
+  width: 56px;
+  height: 32px;
+}
+
+html[data-lens="1"] .switch .track {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border-strong) 76%, transparent);
+  box-shadow:
+    inset 0 1px 2px rgba(28, 48, 68, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.4);
+}
+
+html[data-lens="1"] .switch .thumb {
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 2px 5px rgba(28, 48, 68, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transition: transform 0.34s var(--lens-spring), box-shadow 0.18s var(--ease);
+}
+
+html[data-lens="1"] .switch .thumb::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  width: 7px;
+  height: 4px;
+  border-right: 2px solid var(--switch-check);
+  border-bottom: 2px solid var(--switch-check);
+  transform: translate(-50%, -55%) rotate(45deg) scale(0.5);
+  opacity: 0;
+  transition: opacity 0.16s var(--ease), transform 0.3s var(--lens-spring);
+}
+
+html[data-lens="1"] .switch input:checked + .track {
+  background: var(--brand);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(82, 187, 131, 0.12);
+}
+
+html[data-lens="1"] .switch input:checked ~ .thumb {
+  transform: translateX(24px);
+}
+
+html[data-lens="1"] .switch input:checked ~ .thumb::after {
+  opacity: 1;
+  transform: translate(-50%, -55%) rotate(45deg) scale(1);
+}
+
+html[data-lens="1"] .form-section-title {
+  padding-bottom: 0;
+  margin-bottom: 14px;
+  border-bottom: none;
+  font-size: 13px;
+  font-weight: 640;
+}
+
+html[data-lens="1"] .form-section-title svg {
+  stroke: var(--brand);
+}
+
+/* ------------------------------ surfaces -------------------------------- */
+html[data-lens="1"] .card {
+  padding: 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  background-color: var(--surface-glass);
+  background-image: var(--card-sheen);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+html[data-lens="1"] .card-hover:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--lens-green) 24%, var(--card-border));
+  box-shadow: var(--shadow);
+}
+
+html[data-lens="1"] .card-head {
+  padding-bottom: 0;
+  margin-bottom: 14px;
+  border-bottom: none;
+}
+
+html[data-lens="1"] .card-title {
+  font-size: 13px;
+  font-weight: 640;
+}
+
+html[data-lens="1"] .card-title svg {
+  stroke: var(--text-2);
+}
+
+html[data-lens="1"] .stat {
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  background-color: var(--surface-glass);
+  background-image: var(--card-sheen);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-lens="1"] .stat-strip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 34px;
+  border: 1px solid var(--card-border);
+  background-color: color-mix(in srgb, var(--surface) 66%, transparent);
+  background-image: var(--card-sheen);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+
+html[data-lens="1"] .stat-strip::after {
+  content: "";
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(144, 232, 250, 0.45),
+    rgba(255, 255, 255, 0.85),
+    transparent
+  );
+}
+
+html[data-lens="1"] .stat-cell {
+  padding: 24px 26px;
+  border-right: 1px solid rgba(255, 255, 255, 0.42);
+  transition: background 0.18s var(--ease);
+}
+
+html[data-lens="1"] .stat-cell:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+html[data-lens="1"] .stat-cell .stat-label {
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--text-2);
+}
+
+html[data-lens="1"] .stat-cell .stat-value {
+  margin-top: 8px;
+  font-size: 40px;
+  font-weight: 640;
+  letter-spacing: -0.048em;
+  line-height: 1.02;
+}
+
+html[data-lens="1"] .stat-cell .stat-foot {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+html[data-lens="1"] .stat-icon {
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  border-color: var(--glass-border);
+}
+
+/* --------------------------- badges & pills ----------------------------- */
+html[data-lens="1"] .badge {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 54%, transparent);
+  font-size: 10.5px;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+html[data-lens="1"] .badge .dot {
+  border-radius: 50%;
+}
+
+html[data-lens="1"] .tag {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border-color: color-mix(in srgb, var(--brand) 14%, var(--glass-border));
+}
+
+html[data-lens="1"] .chip {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 52%, transparent);
+  backdrop-filter: blur(10px);
+  transition: transform 0.42s var(--lens-spring), background 0.16s var(--ease),
+    border-color 0.16s var(--ease), color 0.16s var(--ease),
+    box-shadow 0.16s var(--ease);
+}
+
+html[data-lens="1"] .chip:hover {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  border-color: rgba(255, 255, 255, 0.96);
+}
+
+html[data-lens="1"] .chip.active {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 18%, var(--glass-border));
+  box-shadow:
+    0 0 0 2px rgba(82, 187, 131, 0.08),
+    0 8px 18px -14px rgba(28, 48, 68, 0.3);
+  color: var(--brand);
+}
+
+html[data-lens="1"] .pill-group {
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  box-shadow: var(--well-shadow);
+  gap: 3px;
+}
+
+html[data-lens="1"] .pill {
+  height: 34px;
+  padding: 0 15px;
+  border-radius: 999px;
+  transition: transform 0.42s var(--lens-spring), background 0.16s var(--ease),
+    border-color 0.16s var(--ease), color 0.16s var(--ease),
+    box-shadow 0.16s var(--ease);
+}
+
+html[data-lens="1"] .pill.active {
+  background: var(--pill-glass);
+  border-color: var(--pill-border);
+  color: var(--brand);
+  box-shadow: var(--pill-shadow);
+}
+
+html[data-lens="1"] .pill-indicator {
+  border-radius: 999px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-glass);
+  box-shadow: var(--pill-shadow);
+}
+
+html[data-lens="1"] .accent-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+html[data-lens="1"] .appearance-toggle {
+  background: color-mix(in srgb, var(--surface) 48%, transparent);
+  border-color: var(--glass-border);
+  border-radius: 16px;
+}
+
+html[data-lens="1"] .appearance-toggle:hover {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+html[data-lens="1"] .appearance-toggle.open {
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--glass-border));
+  box-shadow: 0 0 0 3px rgba(82, 187, 131, 0.1);
+}
+
+html[data-lens="1"] .palette-chip {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+}
+
+html[data-lens="1"] .palette-chip:hover {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+html[data-lens="1"] .palette-chip.active {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--glass-border));
+  box-shadow: 0 0 0 3px rgba(82, 187, 131, 0.1);
+}
+
+html[data-lens="1"] .bg-tile {
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 46%, transparent);
+}
+
+html[data-lens="1"] .bg-tile:hover {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+}
+
+html[data-lens="1"] .bg-tile.active {
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--glass-border));
+  box-shadow: 0 0 0 3px rgba(82, 187, 131, 0.1);
+}
+
+/* ------------------------------- table ---------------------------------- */
+html[data-lens="1"] .table-wrap {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+html[data-lens="1"] .table th {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.56);
+  background: rgba(255, 255, 255, 0.32);
+  color: var(--text-3);
+  font-family: var(--font);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+html[data-lens="1"] .table td {
+  border-bottom: 1px solid rgba(145, 162, 180, 0.14);
+}
+
+html[data-lens="1"] .table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.44);
+}
+
+/* ---------------------------- item cards -------------------------------- */
+html[data-lens="1"] .item-grid {
+  gap: 20px;
+}
+
+html[data-lens="1"] .item-card {
+  padding: 9px;
+  border-radius: 32px;
+  border: 1px solid var(--card-border);
+  background-color: var(--surface-glass);
+  background-image: var(--card-sheen);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  transition: transform 0.42s var(--lens-spring), border-color 0.16s var(--ease),
+    box-shadow 0.16s var(--ease);
+}
+
+html[data-lens="1"] .item-card:active {
+  transform: scale(0.985);
+  transition-duration: 0.1s;
+}
+
+html[data-lens="1"] .item-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--lens-green) 26%, var(--card-border));
+  box-shadow: var(--shadow);
+}
+
+html[data-lens="1"] .item-thumb {
+  border-radius: 24px;
+  border-bottom: none;
+  background-color: var(--surface-2);
+  background-image:
+    radial-gradient(125% 100% at 18% 0%, color-mix(in srgb, var(--cat, var(--brand)) 12%, transparent), transparent 64%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 48%);
+}
+
+html[data-lens="1"] .item-thumb::after {
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cat, var(--brand)) 72%, transparent),
+    color-mix(in srgb, var(--cat, var(--brand)) 12%, transparent)
+  );
+  opacity: 0.62;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--cat, var(--brand)) 28%, transparent);
+}
+
+html[data-lens="1"] .item-thumb .placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 54%, transparent);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(10px);
+}
+
+html[data-lens="1"] .item-body {
+  padding: 14px 8px 8px;
+  gap: 5px;
+}
+
+html[data-lens="1"] .item-name {
+  font-size: 14.5px;
+  font-weight: 620;
+  letter-spacing: -0.018em;
+}
+
+html[data-lens="1"] .item-foot {
+  border-top: none;
+  padding-top: 5px;
+}
+
+html[data-lens="1"] .item-code {
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+/* ---------------------------- detail page ------------------------------- */
+html[data-lens="1"] .detail-hero {
+  padding: 22px;
+  border-radius: 32px;
+  border: 1px solid var(--card-border);
+  background: var(--surface-glass);
+  background-image: var(--card-sheen);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+html[data-lens="1"] .detail-cover {
+  border-radius: 24px;
+  border-color: var(--glass-border);
+  background-color: var(--surface-2);
+  background-image:
+    linear-gradient(rgba(28, 48, 68, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(28, 48, 68, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px;
+}
+
+html[data-lens="1"] .detail-cover::after {
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--cat, var(--brand)) 72%, transparent),
+    color-mix(in srgb, var(--cat, var(--brand)) 12%, transparent)
+  );
+  opacity: 0.62;
+}
+
+html[data-lens="1"] .detail-title {
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.04em;
+}
+
+html[data-lens="1"] .detail-aside {
+  border-left-color: rgba(145, 162, 180, 0.2);
+}
+
+html[data-lens="1"] .detail-aside-row {
+  border-bottom-color: rgba(145, 162, 180, 0.16);
+}
+
+html[data-lens="1"] .detail-aside-label {
+  font-family: var(--font);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+
+html[data-lens="1"] .cat-icon {
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 58%, transparent);
+  border-color: color-mix(in srgb, var(--cat) 24%, var(--glass-border));
+}
+
+html[data-lens="1"] .info-item {
+  border-bottom-color: rgba(145, 162, 180, 0.16);
+}
+
+/* --------------------------- dashboard ---------------------------------- */
+html[data-lens="1"] .quick-tile {
+  padding: 15px;
+  border-radius: 22px;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 46%, transparent);
+  backdrop-filter: blur(12px);
+  transition: transform 0.42s var(--lens-spring), background 0.16s var(--ease),
+    border-color 0.16s var(--ease), box-shadow 0.16s var(--ease);
+}
+
+html[data-lens="1"] .quick-tile:active {
+  transform: scale(0.98);
+  transition-duration: 0.1s;
+}
+
+html[data-lens="1"] .quick-tile:hover {
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  border-color: rgba(255, 255, 255, 0.96);
+}
+
+html[data-lens="1"] .quick-tile .ic {
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  border-color: var(--glass-border);
+  color: var(--seal);
+}
+
+html[data-lens="1"] .feed-row {
+  border-bottom-color: rgba(145, 162, 180, 0.16);
+}
+
+html[data-lens="1"] .feed-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 54%, transparent);
+}
+
+html[data-lens="1"] .chart-bars {
+  background-image: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent calc(25% - 1px),
+    rgba(145, 162, 180, 0.18) calc(25% - 1px),
+    rgba(145, 162, 180, 0.18) 25%
+  );
+}
+
+html[data-lens="1"] .chart-bar {
+  border-radius: 6px 6px 2px 2px;
+  background: color-mix(in srgb, var(--brand) 72%, transparent);
+  opacity: 0.72;
+}
+
+html[data-lens="1"] .chart-bar.hi {
+  background: var(--seal);
+  opacity: 0.92;
+}
+
+/* ---------------------------- settings ---------------------------------- */
+html[data-lens="1"] .settings-grid {
+  grid-template-columns: 200px 1fr;
+  gap: 30px;
+}
+
+html[data-lens="1"] .settings-nav {
+  top: 84px;
+  gap: 3px;
+}
+
+html[data-lens="1"] .settings-nav-item {
+  padding: 9px 14px;
+  border-radius: 999px;
+  border-color: transparent;
+  font-size: 13px;
+}
+
+html[data-lens="1"] .settings-nav-item:hover {
+  background: var(--rail-hover);
+  color: var(--text);
+}
+
+html[data-lens="1"] .settings-nav-item.active {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+html[data-lens="1"] .settings-nav-indicator {
+  border-radius: 999px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-glass);
+  box-shadow: var(--pill-shadow);
+}
+
+html[data-lens="1"] .settings-nav.has-indicator .settings-nav-item.active {
+  color: var(--brand);
+}
+
+/* ---------------------------- tabs -------------------------------------- */
+html[data-lens="1"] .tabs {
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  box-shadow: var(--well-shadow);
+  width: fit-content;
+  max-width: 100%;
+}
+
+html[data-lens="1"] .tab {
+  position: relative;
+  z-index: 1;
+  min-height: 38px;
+  padding: 9px 15px;
+  border-radius: 999px;
+  border-bottom: none;
+  transition: transform 0.42s var(--lens-spring), color 0.16s var(--ease),
+    background 0.16s var(--ease), box-shadow 0.16s var(--ease);
+}
+
+html[data-lens="1"] .tab.active {
+  color: var(--text);
+  font-weight: 620;
+}
+
+html[data-lens="1"] .tabs.has-indicator .tab.active {
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-lens="1"] .tabs-indicator {
+  z-index: 0;
+  border-radius: 999px;
+  border: 1px solid var(--pill-border);
+  background: var(--pill-glass);
+  box-shadow: var(--pill-shadow);
+}
+
+html[data-lens="1"] .tab .count {
+  border-radius: 999px;
+  font-family: var(--font);
+}
+
+/* 指示器跟手滑动，按下的目标自己缩一下，给出 Lens 的弹性反馈。 */
+html[data-lens="1"] .nav-indicator,
+html[data-lens="1"] .settings-nav-indicator,
+html[data-lens="1"] .tabs-indicator,
+html[data-lens="1"] .pill-indicator,
+html[data-lens="1"] .cmdk-indicator {
+  transition: transform 0.28s var(--ease), width 0.28s var(--ease),
+    height 0.28s var(--ease), opacity 0.2s var(--ease);
+}
+
+html[data-lens="1"] .chip:active,
+html[data-lens="1"] .pill:active,
+html[data-lens="1"] .tab:active,
+html[data-lens="1"] .page-btn:active,
+html[data-lens="1"] .bn-item:active,
+html[data-lens="1"] .settings-nav-item:active,
+html[data-lens="1"] .palette-chip:active,
+html[data-lens="1"] .bg-tile:active,
+html[data-lens="1"] .accent-dot:active,
+html[data-lens="1"] .sidebar > nav .nav-item:active {
+  transform: scale(0.95);
+  transition-duration: 0.09s;
+}
+
+html[data-lens="1"] .settings-nav-item,
+html[data-lens="1"] .page-btn,
+html[data-lens="1"] .bn-item,
+html[data-lens="1"] .palette-chip,
+html[data-lens="1"] .bg-tile,
+html[data-lens="1"] .accent-dot {
+  transition: transform 0.42s var(--lens-spring), background 0.16s var(--ease),
+    border-color 0.16s var(--ease), color 0.16s var(--ease),
+    box-shadow 0.16s var(--ease), opacity 0.16s var(--ease);
+}
+
+/* ------------------- nested switches (smooth option) -------------------- */
+html[data-lens="1"] .hl-switch-track {
+  height: 44px;
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  box-shadow: var(--well-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+html[data-lens="1"] .hl-switch-indicator {
+  border-color: var(--pill-border);
+  background: var(--pill-glass);
+  box-shadow: var(--pill-shadow);
+  transition: transform 0.5s var(--ease), opacity 0.2s var(--ease);
+}
+
+/* 展开时主选项标签已经淡出，底板再留着就会在次级选项下面垫一块白。 */
+html[data-lens="1"] .hl-switch.is-open .hl-switch-indicator {
+  opacity: 0;
+}
+
+html[data-lens="1"] .hl-switch-sub-indicator {
+  border: 1px solid var(--pill-border);
+  background: var(--pill-glass);
+  box-shadow: var(--pill-shadow);
+}
+
+html[data-lens="1"] .hl-switch-option.is-active {
+  color: var(--brand);
+}
+
+html[data-lens="1"] .hl-switch-input:focus-visible {
+  outline-color: var(--lens-accent);
+}
+
+/* ------------------------- loans filter bar ----------------------------- */
+/* 借还页只有两个筛选项，铺满一整条会显得空。收成一枚分段药丸。 */
+html[data-lens="1"] .loans-page .filter-bar {
+  width: fit-content;
+  padding: 4px;
+  gap: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  box-shadow: var(--well-shadow);
+}
+
+/* ---------------------------- overlays ---------------------------------- */
+/* 玻璃不是淡入，而是「显影」：模糊和缩放一起收，像一层材料落下来。 */
+@keyframes lens-materialize {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes lens-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lens-sheet-out {
+  to {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+}
+
+@keyframes lens-pop-menu {
+  from {
+    opacity: 0;
+    transform: translateY(var(--pop-shift, -4px)) scale(0.94);
+    filter: blur(4px);
+  }
+}
+
+html[data-lens="1"] .overlay {
+  background: rgba(16, 28, 40, 0.38);
+  backdrop-filter: blur(12px) saturate(120%);
+}
+
+html[data-lens="1"] .modal {
+  border-radius: 34px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+}
+
+html[data-lens="1"] .modal:not(.is-closing),
+html[data-lens="1"] .cmdk:not(.is-closing),
+html[data-lens="1"] .ui-select-panel:not(.sheet):not(.is-closing) {
+  animation: lens-materialize 0.28s var(--ease) both;
+}
+
+html[data-lens="1"] .pop-menu:not(.is-closing) {
+  animation: lens-pop-menu 0.2s var(--lens-spring) both;
+}
+
+/* 菜单是独立浮层，圆角比卡片小一档；行高按 Lens 的 42px 触控尺寸。 */
+html[data-lens="1"] .pop-menu {
+  border-radius: 24px;
+  background-color: var(--glass-strong);
+}
+
+html[data-lens="1"] .pop-menu button.nav-item {
+  height: 42px;
+  border-radius: 14px;
+}
+
+html[data-lens="1"] .pop-menu button.nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+html[data-lens="1"] .pop-menu button.nav-item.active {
+  background: var(--pill-glass);
+  border-color: var(--pill-border);
+  box-shadow: var(--pill-shadow);
+  color: var(--brand);
+}
+
+html[data-lens="1"] .modal-head {
+  padding: 22px 24px 16px;
+  border-bottom-color: rgba(145, 162, 180, 0.18);
+}
+
+html[data-lens="1"] .modal-body {
+  padding: 22px 24px;
+}
+
+html[data-lens="1"] .modal-foot {
+  padding: 16px 24px;
+  border-top-color: rgba(145, 162, 180, 0.18);
+  border-radius: 0 0 34px 34px;
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+}
+
+html[data-lens="1"] .drawer {
+  top: 10px;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 34px;
+  border-color: var(--glass-border);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+}
+
+html[data-lens="1"] .drawer-overlay,
+html[data-lens="1"] .cmdk-overlay,
+html[data-lens="1"] .ui-select-scrim {
+  background: rgba(16, 28, 40, 0.36);
+  backdrop-filter: blur(10px);
+}
+
+html[data-lens="1"] .cmdk {
+  border-radius: 34px;
+  border-color: var(--glass-border);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+}
+
+html[data-lens="1"] .cmdk-input-row {
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--bg-sunken) 42%, transparent);
+  box-shadow: var(--well-shadow), 0 0 0 3px transparent;
+}
+
+html[data-lens="1"] .cmdk-input-row:focus-within {
+  border-color: color-mix(in srgb, var(--lens-accent) 36%, var(--glass-border));
+  box-shadow: var(--well-shadow), 0 0 0 3px rgba(40, 117, 237, 0.12);
+}
+
+html[data-lens="1"] .cmdk-item,
+html[data-lens="1"] .cmdk-indicator {
+  min-height: 44px;
+  border-radius: 14px;
+}
+
+html[data-lens="1"] .cmdk-item.sel,
+html[data-lens="1"] .cmdk-indicator {
+  background: var(--pill-glass);
+}
+
+html[data-lens="1"] .ui-select-panel {
+  border-radius: 26px;
+  border-color: var(--glass-border);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--glass-blur-lg)) saturate(175%);
+}
+
+html[data-lens="1"] .ui-select-opt {
+  min-height: 40px;
+  border-radius: 14px;
+}
+
+html[data-lens="1"] .ui-select-opt.is-selected,
+html[data-lens="1"] .ui-select-opt.is-selected[data-active="true"] {
+  background: var(--pill-glass);
+}
+
+html[data-lens="1"] .toast {
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--text) 94%, transparent);
+  color: var(--bg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+}
+
+html[data-lens="1"] .empty-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 24px;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--brand-soft) 64%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-lens="1"] .skeleton {
+  border-radius: 12px;
+}
+
+html[data-lens="1"] .divider {
+  background: rgba(145, 162, 180, 0.18);
+}
+
+html[data-lens="1"] .page-btn {
+  border-radius: 999px;
+  border-color: var(--glass-border);
+  background: color-mix(in srgb, var(--surface) 52%, transparent);
+}
+
+html[data-lens="1"] .page-btn.active {
+  border-radius: 999px;
+}
+
+/* ---------------------------- bottom nav -------------------------------- */
+html[data-lens="1"] .bottomnav {
+  left: 10px;
+  right: 10px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  height: calc(62px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 30px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(30px) saturate(175%);
+  -webkit-backdrop-filter: blur(30px) saturate(175%);
+  overflow: visible;
+}
+
+html[data-lens="1"] .bottomnav-inner {
+  height: 62px;
+  padding: 0 6px;
+}
+
+html[data-lens="1"] .bn-item {
+  margin: 6px 2px;
+  border-radius: 20px;
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 550;
+}
+
+html[data-lens="1"] .bn-item.active {
+  color: var(--brand);
+  background: var(--pill-glass);
+}
+
+html[data-lens="1"] .bn-item.active svg {
+  stroke: var(--brand);
+  filter: drop-shadow(0 0 7px rgba(82, 187, 131, 0.36));
+}
+
+html[data-lens="1"] .bn-fab span {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--on-brand);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 14px 28px -12px rgba(35, 100, 66, 0.5);
+  margin-top: -20px;
+}
+
+/* ------------------------------- auth ----------------------------------- */
+html[data-lens="1"] .auth {
+  padding: 16px;
+  gap: 16px;
+}
+
+html[data-lens="1"] .auth-art {
+  border-radius: 34px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    radial-gradient(58% 52% at 18% 12%, rgba(144, 232, 250, 0.24), transparent 66%),
+    radial-gradient(54% 48% at 92% 18%, rgba(226, 181, 78, 0.14), transparent 70%),
+    radial-gradient(70% 60% at 68% 104%, rgba(82, 187, 131, 0.18), transparent 70%),
+    linear-gradient(155deg, #16352c 0%, #0f2822 56%, #0a1b18 100%);
+}
+
+html[data-lens="1"] .auth-panel {
+  background: transparent;
+}
+
+html[data-lens="1"] .auth-form h1 {
+  font-size: 30px;
+  font-weight: 650;
+  letter-spacing: -0.045em;
+}
+
+html[data-lens="1"] .auth-form .sub {
+  font-size: 13.5px;
+  color: var(--text-2);
+}
+
+/* ---------------------------- responsive -------------------------------- */
+@media (max-width: 1024px) {
+  /* 设置页在 1024 以下改成上下结构；桌面的 200px 侧栏不能跟着下移。 */
+  html[data-lens="1"] .settings-grid {
+    grid-template-columns: 1fr;
+  }
+  html[data-lens="1"] .settings-nav {
+    top: auto;
+  }
+}
+
+@media (max-width: 1180px) {
+  html[data-lens="1"] .content {
+    padding: 22px 28px 92px;
+  }
+  html[data-lens="1"] .page-head .h1 {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 1100px) {
+  /* 四栏在 1024 已经挤到脚注折行，切成 2×2 和手机端一致。 */
+  html[data-lens="1"] .stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html[data-lens="1"] .stat-cell {
+    padding: 20px 20px;
+    border-right: 1px solid var(--card-border);
+  }
+  html[data-lens="1"] .stat-cell:nth-child(2n) {
+    border-right: none;
+  }
+  html[data-lens="1"] .stat-cell:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--card-border);
+  }
+  html[data-lens="1"] .stat-cell .stat-value {
+    font-size: 34px;
+  }
+}
+
+@media (max-width: 860px) {
+  /* 侧栏在手机上隐藏，主区必须把桌面的侧栏偏移还回去。 */
+  html[data-lens="1"] .main {
+    margin-left: 0;
+  }
+  html[data-lens="1"] .topbar {
+    top: 8px;
+    height: 52px;
+    margin: 8px 10px 0;
+    padding: 0 12px 0 8px;
+    border-radius: 24px;
+    background: var(--glass);
+    border-color: var(--glass-border);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+  }
+  html[data-lens="1"][data-native] .topbar {
+    top: calc(8px + max(env(safe-area-inset-top), 24px));
+    margin-top: calc(8px + max(env(safe-area-inset-top), 24px));
+  }
+  html[data-lens="1"] .content {
+    padding: 18px 18px 112px;
+  }
+  html[data-lens="1"] .page-head {
+    align-items: flex-start;
+    margin: 4px 2px 18px;
+  }
+  html[data-lens="1"] .page-head .h1 {
+    font-size: 30px;
+    line-height: 1.1;
+  }
+  html[data-lens="1"] .page-head .sub {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  html[data-lens="1"] .card {
+    padding: 18px;
+    border-radius: 26px;
+  }
+  html[data-lens="1"] .stat-strip {
+    border-radius: 28px;
+  }
+  html[data-lens="1"] .stat-cell {
+    padding: 17px 16px;
+  }
+  html[data-lens="1"] .stat-cell .stat-value {
+    font-size: 30px;
+  }
+  html[data-lens="1"] .stat-cell .stat-foot {
+    font-size: 10.5px;
+  }
+  html[data-lens="1"] .item-card {
+    border-radius: 26px;
+    padding: 7px;
+  }
+  html[data-lens="1"] .item-thumb {
+    border-radius: 21px;
+  }
+  html[data-lens="1"] .item-body {
+    padding: 11px 6px 5px;
+  }
+  html[data-lens="1"] .detail-hero {
+    padding: 16px;
+    border-radius: 26px;
+  }
+  html[data-lens="1"] .detail-title {
+    font-size: 24px;
+  }
+  html[data-lens="1"] .detail-cover {
+    border-radius: 22px;
+  }
+  html[data-lens="1"] .modal {
+    border-radius: 28px;
+  }
+  html[data-lens="1"] .modal-foot {
+    border-radius: 0 0 28px 28px;
+  }
+  html[data-lens="1"] .drawer {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: auto;
+    max-height: 88vh;
+    border-radius: 30px;
+  }
+  /* 手机上抽屉是底部纸片，进场和退场都得从下方走。 */
+  html[data-lens="1"] .drawer:not(.is-closing) {
+    animation: lens-sheet-in 0.3s var(--ease) both;
+  }
+  html[data-lens="1"] .drawer.is-closing {
+    animation: lens-sheet-out 0.2s var(--ease) forwards;
+  }
+  html[data-lens="1"] .settings-grid {
+    gap: 18px;
+  }
+  html[data-lens="1"] .settings-nav {
+    top: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-lens="1"] .content {
+    padding: 14px 14px 108px;
+  }
+  html[data-lens="1"] .page-head .h1 {
+    font-size: 28px;
+  }
+  html[data-lens="1"] .btn {
+    height: 40px;
+    padding: 0 14px;
+  }
+  html[data-lens="1"] .btn-primary {
+    height: 42px;
+  }
+  html[data-lens="1"] .input,
+  html[data-lens="1"] .select {
+    height: 42px;
+  }
+  html[data-lens="1"] .textarea {
+    height: auto;
+    min-height: 88px;
+  }
+  /* 两列卡片只有 150px 出头：编号不换行，脚注放不下时整行落到下一排。 */
+  html[data-lens="1"] .item-foot {
+    flex-wrap: wrap;
+    gap: 4px 6px;
+  }
+  html[data-lens="1"] .item-code {
+    white-space: nowrap;
+    font-size: 9.5px;
+    padding: 1px 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-lens="1"] .btn,
+  html[data-lens="1"] .card,
+  html[data-lens="1"] .item-card,
+  html[data-lens="1"] .nav-indicator,
+  html[data-lens="1"] .settings-nav-indicator,
+  html[data-lens="1"] .tabs-indicator,
+  html[data-lens="1"] .pill-indicator {
+    transition-duration: 0s !important;
+  }
+}

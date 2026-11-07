@@ -1,0 +1,95 @@
+# runtime data
+backend/data/
+data/
+*.db
+*.db-wal
+*.db-shm
+uploads/
+backups/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-build/
+venv/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+
+# node
+node_modules/
+dist/
+# 出包脚本的中间产物（免安装版的暂存目录）
+/build/
+.vite/
+
+# build output copied into the backend for single-binary serving
+# (sw.js is generated from frontend/public/sw.js; the whole folder is disposable)
+backend/app/static/
+
+# desktop build artifacts
+src-tauri/target/
+# gen/schemas is regenerated from capabilities on every build; gen/android is
+# the actual Android Studio project and must be committed — regenerating it
+# silently throws away the manifest and Gradle tweaks below.
+src-tauri/gen/schemas/
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/build/
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/app/src/main/jniLibs/
+# the frozen sidecar is ~90MB and rebuilt by scripts/build-desktop.sh
+src-tauri/server/homeledger-server/
+backend/build/
+backend/dist/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+.secret_key
+.install_id
+.signing/
+*.pfx
+*.p12
+*.jks
+*.keystore
+**/password.txt
+.local-snapshots/
+.tmp-*/
+*.log
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# tsc incremental build cache
+frontend/tsconfig.tsbuildinfo
+
+# local-only working notes and test rigs
+.claude/
+.device-test/
+.install-test/
+HANDOFF.md
+HANDOVER.md
+START-HERE.txt
+docs/安全与闭源商业化方案.md
+docs/2026-*.md
+docs/design-systems-lens-review.md
+docs/kolejain-design-review.md
+docs/ui-improvement-loop.md
+docs/宣传文案-2.0.0.md
+
+# screenshots from older UI iterations; the public site uses docs/assets/screenshots
+docs/previews/
+docs/screenshots/*
+!docs/screenshots/desktop.png
+!docs/screenshots/sync-local-server.png
+!docs/screenshots/select-sheet.png
+!docs/screenshots/select-popover.png
+
+src-tauri/gen/android/.kotlin/
+docs/DEV_PLAN.md

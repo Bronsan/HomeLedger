@@ -1,0 +1,181 @@
+name: Release
+
+# 一套代码，四个平台，一次打全。
+#
+# 为什么必须在 CI 里出包，而不是在开发机上：
+#
+#   * .dmg 只能由 macOS 生成。不是签名工具的问题——hdiutil、codesign 和
+#     Apple 的 SDK 都只随 Xcode 分发，Linux 上没有替代品。
+#   * .exe 理论上能从 Linux 交叉编译（cargo-xwin），但随包分发的 Python
+#     sidecar 不能：PyInstaller 安装的是当前平台的解释器和二进制轮子，
+#     交叉不了。Windows 上跑一遍 Windows 的 PyInstaller 才是正路。
+#   * .deb / .AppImage 在 Linux 上就是原生能力。
+#
+# 所以：本地开发只出当前平台的包用于自测，正式发布交给这里。
+#
+# 用法：
+#   在 Actions 页面手动触发（workflow_dispatch）。
+#
+# 这个工作流只负责“从源码构建出可检查的安装包”，不自动发布 Release。
+# 正式 Release 使用仓库维护者在本地签好名的 Windows / Android 包，
+# 由维护者手动创建 tag 并上传附件——这样不会因为 CI 缺少证书而
+# 产出未签名或半成品，也不会让一次误推 tag 变成一次发布。
+#
+# 产物会挂在这次运行上，供检查或手动下载。
+
+on:
+  workflow_dispatch:
+
+env:
+  # 关掉 Tauri CLI 的交互提示；CI 里没有 TTY。
+  CI: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # 一个平台挂了不该连带取消其他平台——尤其是 macOS 签名这种
+      # 与代码无关、只跟证书有关的失败。
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: deb,appimage
+            # ubuntu-22.04 是为了 glibc 2.35 的兼容下限。跑在 24.04 上打出来的
+            # 包在旧发行版上会因为 GLIBC_2.38 找不到符号而直接起不来。
+          - name: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            # 只要 nsis，不要 msi：MSI 需要 WiX，而 WiX 的 v3 已经停止维护、
+            # v4 又改了整套命令。NSIS 装出来一样是双击即装，还小 40%。
+          - name: macos-arm64
+            os: macos-latest
+            target: aarch64-apple-darwin
+            bundles: dmg
+          - name: macos-x64
+            os: macos-13
+            target: x86_64-apple-darwin
+            bundles: dmg
+            # macos-13 是最后一版 Intel runner。用 macos-latest 交叉编译到
+            # x86_64 也能出包，但跑不了也不会有人在 CI 里验证，不如用真机。
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 安装 Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: 缓存 Cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # WebKitGTK 在 runner 镜像里是有的，但版本随镜像漂移；显式装一遍，
+      # 顺带把 appindicator（托盘图标）和 patchelf（AppImage 打包要改 rpath）
+      # 补齐。
+      - name: 安装 Linux 系统依赖
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建前端
+        working-directory: frontend
+        run: pnpm build
+
+      # 前端产物直接落在 backend/app/static，sidecar 会把整个 static 目录
+      # 一起冻进去——所以顺序不能反：先 build 前端，再打包后端。
+      - name: 安装后端依赖
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+
+      - name: 打包后端 sidecar
+        working-directory: backend
+        run: python -m PyInstaller --clean --noconfirm homeledger-server.spec
+
+      - name: 复制 sidecar 到 Tauri 资源目录
+        shell: bash
+        run: |
+          rm -rf src-tauri/server/homeledger-server
+          mkdir -p src-tauri/server
+          cp -R backend/dist/homeledger-server src-tauri/server/
+          du -sh src-tauri/server/homeledger-server
+
+      - name: 构建安装包
+        run: pnpm dlx @tauri-apps/cli@^2 build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+        env:
+          # macOS 上没配证书就跳过签名，不要因为缺 secret 让整个构建失败。
+          # 真发布时把 APPLE_CERTIFICATE / APPLE_SIGNING_IDENTITY 加进 secrets。
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: 收集产物
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          find src-tauri/target/${{ matrix.target }}/release/bundle \
+            -type f \( -name '*.deb' -o -name '*.AppImage' -o -name '*.dmg' -o -name '*.exe' -o -name '*.msi' \) \
+            -exec cp {} artifacts/ \;
+          ls -lh artifacts/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HomeLedger-${{ matrix.name }}
+          path: artifacts/*
+          if-no-files-found: error
+
+  # 打 tag 时把四个平台的产物汇总成一个 release。
+  publish:
+    name: 发布
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          draft: true

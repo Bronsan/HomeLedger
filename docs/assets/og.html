@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <style>
+    @font-face {
+      font-family: "IBM Plex Sans";
+      src: url("fonts/plex-sans-var.woff2") format("woff2");
+      font-weight: 100 700;
+      font-display: block;
+    }
+    @font-face {
+      font-family: "IBM Plex Mono";
+      src: url("fonts/plex-mono-400.woff2") format("woff2");
+      font-weight: 400;
+      font-display: block;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+    body {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1.03fr 0.97fr;
+      gap: 46px;
+      padding: 58px 64px;
+      color: #f2efe3;
+      background: #18231d;
+      font-family: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(242, 239, 227, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(242, 239, 227, 0.05) 1px, transparent 1px);
+      background-size: 36px 36px;
+    }
+    body::after {
+      content: "HL";
+      position: absolute;
+      right: -24px;
+      bottom: -82px;
+      color: transparent;
+      font-size: 330px;
+      font-weight: 650;
+      letter-spacing: -0.08em;
+      line-height: 0.8;
+      -webkit-text-stroke: 1px rgba(242, 239, 227, 0.1);
+    }
+    .left, .right { position: relative; z-index: 1; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand img { width: 48px; height: 48px; border-radius: 12px; }
+    .brand strong { display: block; font-size: 22px; letter-spacing: -0.03em; line-height: 1.1; }
+    .brand small { display: block; margin-top: 2px; color: rgba(242, 239, 227, 0.58); font-size: 11px; letter-spacing: 0.14em; }
+    .kicker {
+      margin: 54px 0 16px;
+      color: rgba(242, 239, 227, 0.56);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+    }
+    h1 {
+      margin: 0;
+      font-size: 65px;
+      font-weight: 650;
+      letter-spacing: -0.055em;
+      line-height: 1.06;
+    }
+    h1 span { color: #8fc3ad; }
+    .lede {
+      max-width: 470px;
+      margin: 22px 0 0;
+      color: rgba(242, 239, 227, 0.68);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+    .facts {
+      display: flex;
+      gap: 22px;
+      margin-top: 26px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(242, 239, 227, 0.2);
+      color: rgba(242, 239, 227, 0.62);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.03em;
+    }
+    .facts span::before {
+      content: "";
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      margin-right: 7px;
+      background: #d77a5e;
+      transform: rotate(45deg) translateY(-1px);
+    }
+    .right { display: flex; align-items: center; justify-content: center; }
+    .frame {
+      position: relative;
+      width: 100%;
+      padding: 9px;
+      background: #f3f0e6;
+      border: 1px solid rgba(242, 239, 227, 0.4);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+      transform: rotate(-0.8deg);
+    }
+    .frame img { display: block; width: 100%; border: 1px solid #d4d1c3; }
+    .seal {
+      position: absolute;
+      top: -24px;
+      right: -22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 92px;
+      height: 92px;
+      color: #b5543c;
+      background: #f3f0e6;
+      border: 3px solid currentColor;
+      border-radius: 4px;
+      transform: rotate(8deg);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+    .seal::before { content: ""; position: absolute; inset: 6px; border: 1px solid currentColor; opacity: 0.55; }
+    .seal b { font-family: "Songti SC", "Noto Serif SC", serif; font-size: 30px; letter-spacing: 0.12em; line-height: 1; transform: translateX(2px); }
+    .seal small { margin-top: 3px; font-family: "IBM Plex Mono", monospace; font-size: 6px; letter-spacing: 0.1em; line-height: 1.4; text-align: center; }
+    .version {
+      position: absolute;
+      left: 64px;
+      bottom: 26px;
+      color: rgba(242, 239, 227, 0.38);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+    }
+  </style>
+</head>
+<body>
+  <div class="left">
+    <div class="brand">
+      <img src="logo.svg" alt="">
+      <span><strong>HomeLedger</strong><small>家庭物品台账</small></span>
+    </div>
+    <p class="kicker">LOCAL-FIRST · 家庭物品全生命周期</p>
+    <h1>家里的每件东西，<br><span>都有据可查。</span></h1>
+    <p class="lede">从购入、存放、保修、维护，到借出、归还、批次到期。数据留在你的设备上，断网也能用。</p>
+    <div class="facts">
+      <span>本地优先</span>
+      <span>端到端加密</span>
+      <span>Windows / Android / Web</span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="frame">
+      <img src="screenshots/dashboard-light.jpg" alt="">
+      <div class="seal"><b>在册</b><small>HOME<br>LEDGER</small></div>
+    </div>
+  </div>
+  <p class="version">HOME LEDGER · 2.0.2-BETA · 2026</p>
+</body>
+</html>

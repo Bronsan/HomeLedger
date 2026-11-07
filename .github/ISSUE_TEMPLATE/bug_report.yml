@@ -1,0 +1,79 @@
+name: 问题报告
+description: 报告可以复现的 bug 或异常行为
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先搜索已有 Issue，并确认你使用的是最新版本。
+        **安全漏洞请不要在这里提交**，请使用 [私密安全公告](https://github.com/Bronsan/HomeLedger/security/advisories/new)。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 简要描述实际行为，以及它和预期有什么不同。
+      placeholder: 例如：在维护页切换“已完成”后，列表仍然显示待办项目。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 尽量写成别人可以照着做的步骤。涉及数据时请使用演示数据。
+      placeholder: |
+        1. 打开 ...
+        2. 点击 ...
+        3. 看到 ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      multiple: true
+      options:
+        - Windows 安装版
+        - Windows 便携版
+        - Android APK
+        - 浏览器 / PWA
+        - 自托管服务器
+        - 从源码运行
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 在“设置 → 关于”或安装包文件名中查看。
+      placeholder: 例如 2.0.2-beta
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志、截图或补充信息
+      description: 请先移除密码、密钥、令牌、邮箱、真实家庭数据和服务器地址中的敏感部分。
+      render: text
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我已经搜索过已有 Issue，并使用的是最新版本。
+          required: true
+        - label: 我已经移除日志和截图中的敏感信息。
+          required: true

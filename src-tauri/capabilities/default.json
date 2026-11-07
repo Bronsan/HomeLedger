@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "启动页与自绘标题栏所需权限。业务界面通过 HTTP 与本地服务通信，不依赖 IPC；窗口控制三件套（最小化/最大化/关闭）是 decorations:false 之后必须显式授予的。",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close"
+  ]
+}

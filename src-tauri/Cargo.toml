@@ -1,0 +1,45 @@
+[package]
+name = "homeledger-desktop"
+version = "2.0.2-beta"
+edition = "2021"
+rust-version = "1.77"
+description = "HomeLedger 桌面端 —— 家庭物品全生命周期管理"
+authors = ["HomeLedger"]
+
+# Tauri 的 Android / iOS 目标把 crate 当静态库链接，自己调用 run()。
+# 没有这个 [lib] 段，`tauri android build` 会在 Gradle 阶段报
+# 「找不到 libhomeledger_desktop_lib.so」——报错指向 Gradle，原因却在这里。
+[lib]
+name = "homeledger_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "homeledger-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-notification = "2"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# --- desktop only ----------------------------------------------------------
+# These four have no meaning on a phone: there is no second instance to
+# deduplicate, no folder to open in a file manager, and no local server to
+# health-check. Gating them by target also keeps the APK from downloading
+# and linking code it will never call.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = "2"
+tauri-plugin-opener = "2"
+# Local health probes only ever hit http://127.0.0.1, so TLS is dead weight.
+ureq = { version = "2.12", default-features = false, features = ["json"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

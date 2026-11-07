@@ -1,0 +1,49 @@
+# Keep the build context small and reproducible.
+# Without this, `COPY frontend/ ./` drags node_modules into the image layer and
+# `COPY backend/app ./app` drags the local data directory (including the demo
+# database) into a production image.
+
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.venv
+**/.mypy_cache
+**/.pytest_cache
+
+# local runtime state — never bake a database into an image
+backend/data
+backend/app/static
+
+# secrets and local config
+.env
+.env.*
+!.env.example
+
+# Never send release history, signing keys or local audit snapshots to a builder.
+dist
+build
+.local-snapshots
+.tmp-*
+src-tauri/target
+src-tauri/server
+src-tauri/gen
+**/.signing
+**/*.pfx
+**/*.p12
+**/*.jks
+**/*.keystore
+**/password.txt
+**/.secret_key
+**/.desktop_token
+**/.install_id
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.log
+backend/build
+backend/dist
+frontend/dist
+docs
+.git
+.gitignore
+*.md

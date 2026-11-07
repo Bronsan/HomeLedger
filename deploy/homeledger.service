@@ -1,0 +1,51 @@
+# HomeLedger systemd unit — bare-metal gateway install
+#
+#   sudo cp deploy/homeledger.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now homeledger
+#
+# Assumes: /opt/homeledger/{backend,frontend}, venv at /opt/homeledger/.venv,
+# data at /var/lib/homeledger, running as user `homeledger`.
+
+[Unit]
+Description=HomeLedger — 家庭物品账本
+Documentation=https://github.com/your-org/homeledger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=homeledger
+Group=homeledger
+WorkingDirectory=/opt/homeledger/backend
+
+Environment=HOMELEDGER_DEPLOYMENT_MODE=gateway
+Environment=HOMELEDGER_DATA_DIR=/var/lib/homeledger
+Environment=HOMELEDGER_ENABLE_SCHEDULER=true
+# 强烈建议显式设置，且不要提交到版本库：
+# Environment=HOMELEDGER_SECRET_KEY=...
+
+# --no-access-log：默认访问日志会写客户端 IP；本项目有意不保留这类信息。
+ExecStart=/opt/homeledger/.venv/bin/uvicorn app.main:app \
+    --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*' \
+    --no-access-log
+
+Restart=always
+RestartSec=3
+TimeoutStopSec=20
+
+# --- hardening ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/homeledger
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+
+# --- resource guard (NAS / mini PC) ---
+MemoryMax=512M
+TasksMax=256
+
+[Install]
+WantedBy=multi-user.target

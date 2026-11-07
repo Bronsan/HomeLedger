@@ -1,0 +1,30 @@
+# Caddy 反向代理示例 —— 自动 HTTPS，适合有域名的云部署
+#
+#   caddy run --config deploy/Caddyfile
+#
+# 网关内网也可用 homeledger.home.arpa + 内部 CA。
+
+homeledger.example.com {
+	encode zstd gzip
+
+	# 附件上传：与 HOMELEDGER_MAX_UPLOAD_MB 保持一致
+	request_body {
+		max_size 64MB
+	}
+
+	reverse_proxy 127.0.0.1:8000 {
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# 隐私：不写访问日志。Caddy 默认日志含客户端 IP，本项目不保留这类信息；
+	# 错误仍会写到 systemd journal。
+}

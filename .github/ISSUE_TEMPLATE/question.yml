@@ -1,0 +1,46 @@
+name: 使用问题
+description: 安装、部署、同步或使用中的疑问
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提问前请先看 [README](https://github.com/Bronsan/HomeLedger#readme)、[部署文档](https://github.com/Bronsan/HomeLedger/blob/main/docs/DEPLOYMENT.md) 和 [隐私说明](https://github.com/Bronsan/HomeLedger/blob/main/PRIVACY.md)。
+        安全问题请走 [私密安全公告](https://github.com/Bronsan/HomeLedger/security/advisories/new)。
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 你的问题
+      description: 说明你已经尝试过什么，以及卡在哪一步。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 使用环境
+      multiple: true
+      options:
+        - Windows 安装版
+        - Windows 便携版
+        - Android APK
+        - 浏览器 / PWA
+        - 自托管服务器
+        - 从源码运行
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      placeholder: 例如 2.0.2-beta
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 补充信息
+      description: 日志、截图、错误提示。请先移除密码、密钥、令牌、邮箱和真实家庭数据。
+      render: text

@@ -1,0 +1,72 @@
+name: CI
+
+# 每次推送到 main、每个 PR 都跑：前端类型检查/构建/单元测试 + 后端测试。
+# 构建本身不是目的，保持 main 随时可以出包才是。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: 前端
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 安装依赖
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: 类型检查并构建
+        working-directory: frontend
+        run: pnpm build
+
+      - name: 单元测试
+        working-directory: frontend
+        run: pnpm test
+
+  backend:
+    name: 后端
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: 安装依赖
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+
+      - name: 测试
+        working-directory: backend
+        env:
+          # 测试只写临时目录，绝不碰仓库里的 backend/data。
+          HOMELEDGER_DATA_DIR: ${{ runner.temp }}/homeledger-data
+        run: python -m pytest -q

@@ -1,0 +1,15 @@
+{
+  "name": "homeledger",
+  "private": true,
+  "version": "2.0.2-beta",
+  "description": "家庭物品全生命周期管理",
+  "scripts": {
+    "dev": "pnpm --dir frontend dev",
+    "build": "pnpm --dir frontend build",
+    "desktop": "./scripts/dev-desktop.sh",
+    "bundle": "./scripts/build-desktop.sh"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
