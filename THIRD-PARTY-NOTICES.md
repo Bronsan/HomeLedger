@@ -19,6 +19,7 @@ HomeLedger 自身按 [PolyForm Noncommercial License 1.0.0](LICENSE) 授权。�
 | vite | 5.x | MIT | 构建（不随运行时分发） |
 | @vitejs/plugin-react | 4.x | MIT | 构建 |
 | typescript | 5.x | Apache-2.0 | 类型检查与构建 |
+| esbuild | 0.21.x | MIT | 单元测试打包（不随包分发） |
 | playwright-core | 1.x | Apache-2.0 | 端到端测试（不随包分发） |
 | @types/* | — | MIT | 类型声明（不随包分发） |
 
