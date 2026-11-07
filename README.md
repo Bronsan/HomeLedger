@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Bronsan/HomeLedger/releases"><img src="https://img.shields.io/github/v/release/Bronsan/HomeLedger?style=flat-square&color=2f5d50&label=release" alt="Release"></a>
+  <a href="https://github.com/Bronsan/HomeLedger/actions/workflows/ci.yml"><img src="https://github.com/Bronsan/HomeLedger/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-b5543c?style=flat-square" alt="License"></a>
   <a href="#download"><img src="https://img.shields.io/badge/platform-Windows%20%7C%20Android%20%7C%20Web-2f5d50?style=flat-square" alt="Platform"></a>
   <a href="#tests"><img src="https://img.shields.io/badge/tests-254%20passing-2f5d50?style=flat-square" alt="Tests"></a>
