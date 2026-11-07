@@ -472,6 +472,7 @@ HomeLedger/
 
 诚实地列出来，比事后解释更省事：
 
+- **登录限流是进程内的。** 计数存在单个 API 进程的内存里，`uvicorn --workers N` 或多副本部署时，攻击者拿到的额度是 N 倍。多进程部署请在外层再加一道限流（nginx `limit_req`、Cloudflare、Traefik），或换用共享存储的限流器。
 - **SQLite 不适合多写并发。** 能力矩阵里 `concurrent_writers: false` 是事实陈述，不是待办事项。多人家庭请用网关 + 单进程 API。
 - **SQLite → PostgreSQL 不是改个连接串。** 两者共用同一套 ORM 模型与查询，但 JSON 列、`LIKE` 大小写、日期函数行为存在差异；切换前需跑一遍迁移测试。
 - **自动恢复只支持 SQLite。** PostgreSQL 部署请用 `pg_restore`，接口会明确报错而不是假装成功。

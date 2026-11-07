@@ -1,7 +1,11 @@
 """Bounded, short-lived authentication throttling for a single API process.
 
 Only keyed digests live in memory; no address/email/user-agent history is saved.
-Use a gateway/shared limiter for multiple workers or replicas.
+
+The counters live in this process, so **N workers or N replicas give an attacker
+N times the budget**. Deploy a gateway-level limiter (nginx ``limit_req``,
+Cloudflare, Traefik) or a shared-store limiter alongside this one whenever the
+API runs with more than one process.
 """
 
 from __future__ import annotations
@@ -23,10 +27,14 @@ class AuthLimiter:
         self._salt = secrets.token_bytes(32)
         self._buckets: dict[bytes, tuple[float, int]] = {}
         self._lock = threading.Lock()
+        # Expired keys are swept every `max_keys` calls instead of on every call.
+        self._sweep_interval = max(1, max_keys)
+        self._sweep_due = self._sweep_interval
 
     def clear(self) -> None:
         with self._lock:
             self._buckets.clear()
+            self._sweep_due = self._sweep_interval
 
     def check(self, key: str, limit: int) -> None:
         if limit <= 0:
@@ -34,9 +42,23 @@ class AuthLimiter:
         digest = hashlib.blake2b(key.encode(), key=self._salt, digest_size=16).digest()
         now = time.monotonic()
         with self._lock:
-            self._buckets = {k: v for k, v in self._buckets.items() if v[0] > now}
-            end, count = self._buckets.get(digest, (now + self.window, 0))
-            if count >= limit or (digest not in self._buckets and len(self._buckets) >= self.max_keys):
+            # Sweeping on an amortised schedule keeps the hot path O(1). Rebuilding
+            # the whole dict on every call made each request slower the harder the
+            # endpoint was hammered, which helps the attacker, not us.
+            self._sweep_due -= 1
+            if self._sweep_due <= 0:
+                self._buckets = {k: v for k, v in self._buckets.items() if v[0] > now}
+                self._sweep_due = self._sweep_interval
+
+            entry = self._buckets.get(digest)
+            if entry is not None and entry[0] <= now:
+                # The key we were asked about has expired: drop it now so this call
+                # starts a fresh window without waiting for the next sweep.
+                del self._buckets[digest]
+                entry = None
+
+            end, count = entry if entry is not None else (now + self.window, 0)
+            if count >= limit or (entry is None and len(self._buckets) >= self.max_keys):
                 raise HTTPException(429, "尝试过于频繁，请稍后重试", headers={"Retry-After": str(self.window)})
             self._buckets[digest] = (end, count + 1)
 
